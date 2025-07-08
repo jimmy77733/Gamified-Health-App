@@ -170,19 +170,121 @@
             scrollbar-width: none;  /* Firefox */
         }
 
-        /* --- 主畫面 --- */
-        .player-profile-card { padding: 15px; }
-        .profile-header { display: flex; align-items: center; gap: 15px; }
-        #player-avatar-main { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--primary-accent-color); object-fit: cover; }
-        .profile-info { flex-grow: 1; }
-        .profile-name-title { display: flex; align-items: baseline; gap: 8px; }
-        #player-name-main { font-weight: 600; font-size: 20px; }
-        #player-title-main { font-size: 12px; color: var(--text-color-light); background-color: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 6px;}
-        .level-progress-container { margin-top: 8px; }
-        .level-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-color-light); margin-bottom: 4px; }
-        .progress-bar-bg { width: 100%; height: 8px; background-color: rgba(0,0,0,0.2); border-radius: 4px; overflow: hidden; }
-        #level-progress-bar { width: 0%; height: 100%; background-color: var(--primary-accent-color); border-radius: 4px; transition: width 0.5s ease; }
-        
+        /* --- 主畫面  --- */
+        .player-profile-card {
+            display: flex; /* ✨ 讓卡片本身變成 flex 容器 */
+            align-items: center; /* ✨ 垂直置中對齊 */
+            gap: 15px; /* ✨ 設定頭像和文字之間的間距 */
+            padding: 15px;
+        }
+
+        #player-avatar-main-wrapper {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-accent-color);
+            padding: 2px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #player-avatar-main-wrapper img, 
+        #player-avatar-main-wrapper span {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        #player-avatar-main-wrapper span {
+            font-size: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .profile-details {
+            flex-grow: 1; /* ✨ 讓文字區塊填滿剩餘空間 */
+            display: flex;
+            flex-direction: column; /* ✨ 讓內部元素垂直排列 */
+            gap: 4px; /* ✨ 設定上下間距 */
+            min-width: 0; /* ✨ 避免文字過長時撐開版面 */
+        }
+
+        .profile-name-title {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap; /* ✨ 允許換行 */
+        }
+
+        #player-name-main {
+            font-weight: 600;
+            font-size: 20px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* 名字太長時顯示... */
+        }
+
+        #player-title-main {
+            font-size: 12px;
+            color: var(--text-color-light);
+            background-color: rgba(0,0,0,0.2);
+            padding: 2px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .profile-level-xp {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        #player-level-main {
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .equipped-title {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 5px;
+            background: linear-gradient(45deg, var(--rarity-luna), var(--rarity-stella));
+            color: white;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            animation: title-glow 2s ease-in-out infinite alternate;
+        }
+
+        .level-progress-card { /* ✨ 新增的經驗值卡片樣式 */
+            padding: 10px 15px;
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-color-light);
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #level-progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--primary-accent-color);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
         /* [UI重構] 能力值卡片新樣式 */
         .points-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         #reset-stats-btn { background: none; border: 1px solid var(--text-color-light); color: var(--text-color-light); font-size: 12px; padding: 4px 8px; border-radius: var(--border-radius-md); cursor: pointer; }
@@ -1331,157 +1433,89 @@
             </div>
         </div>
 
-        <div id="main-app" class="screen">
-            <div class="main-content">
-                <div class="glass-card player-profile-card">
-                    <div class="profile-header">
-                        <div id="player-avatar-main-wrapper">
-                                <img id="player-avatar-main" src="" alt="Player Avatar" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
-                            </div>
-                            <img id="player-avatar-main" src="" alt="Player Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                        </div>
-                        <div class="profile-info">
-                            <div class="profile-name-title">
-                                <span id="player-name-main"></span>
-                                <span id="player-title-main"></span>
-                                <span id="player-equipped-title" class="equipped-title"></span>
-                            </div>
-                            <div class="level-progress-container">
-                                <div class="level-info">
-                                    <span id="player-level-main">Lv. 1</span>
-                                    <span id="player-xp-main">0 / 100</span>
-                                </div>
-                                <div class="progress-bar-bg">
-                                    <div id="level-progress-bar"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<div id="main-app" class="screen active"> <div class="main-content">
+        <div class="glass-card player-profile-card">
+            <div id="player-avatar-main-wrapper">
                 </div>
-                
-                <div class="glass-card">
-                    <div class="points-header">
-                        <h3>📊能力值</h3>
-                        <button id="reset-stats-btn">重置♻️</button>
-                    </div>
-                    <div id="unassigned-points-display">剩餘點數：0</div>
-                    <div class="stat-item">
-                        <div class="stat-name-value">
-                            <i class="ph-fill ph-barbell" style="color:#FF6B6B;"></i>
-                            <span>力量</span>
-                            <span class="stat-value" id="strength-value">0</span>
-                        </div>
-                        <div class="stat-controls">
-                            <button class="stat-btn" data-stat="strength" data-action="plus">+</button>
-                            <button class="info-btn" data-stat-info="strength"><i class="ph-fill ph-info"></i></button>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-name-value">
-                            <i class="ph-fill ph-shield" style="color:#FFA726;"></i>
-                            <span>耐力</span>
-                            <span class="stat-value" id="stamina-value">0</span>
-                        </div>
-                        <div class="stat-controls">
-                            <button class="stat-btn" data-stat="stamina" data-action="plus">+</button>
-                            <button class="info-btn" data-stat-info="stamina"><i class="ph-fill ph-info"></i></button>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-name-value">
-                            <i class="ph-fill ph-wind" style="color:#FFEE58;"></i>
-                            <span>敏捷</span>
-                            <span class="stat-value" id="agility-value">0</span>
-                        </div>
-                        <div class="stat-controls">
-                            <button class="stat-btn" data-stat="agility" data-action="plus">+</button>
-                            <button class="info-btn" data-stat-info="agility"><i class="ph-fill ph-info"></i></button>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-name-value">
-                            <i class="ph-fill ph-brain" style="color:#42A5F5;"></i>
-                            <span>智力</span>
-                            <span class="stat-value" id="intelligence-value">0</span>
-                        </div>
-                        <div class="stat-controls">
-                            <button class="stat-btn" data-stat="intelligence" data-action="plus">+</button>
-                            <button class="info-btn" data-stat-info="intelligence"><i class="ph-fill ph-info"></i></button>
-                        </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-name-value">
-                            <i class="ph-fill ph-clover" style="color:#AB47BC;"></i>
-                            <span>運氣</span>
-                            <span class="stat-value" id="luck-value">0</span>
-                        </div>
-                        <div class="stat-controls">
-                            <button class="stat-btn" data-stat="luck" data-action="plus">+</button>
-                            <button class="info-btn" data-stat-info="luck"><i class="ph-fill ph-info"></i></button>
-                        </div>
-                    </div>
-                    <hr style="border-color: var(--border-color); margin: 20px 0;">
-                    <div class="equipment-slots-container">
-                        <div id="equipmentSlot1" class="equipment-slot">
-                            </div>
-                        <div id="equipmentSlot2" class="equipment-slot">
-                            </div>
-                    </div>
+            <div class="profile-details">
+                <div class="profile-name-title">
+                    <span id="player-name-main"></span>
+                    <span id="player-title-main"></span>
                 </div>
-
-                <div class="glass-card">
-                    <h3 style="margin:0; padding:0; border:none;">📜</i>
-                            <span id="health-log-date"></span>健康紀錄
-                        </h3>
-                        <button id="show-damage-data-btn" class="info-btn" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px;">
-                            累積傷害
-                        </button>
-                    <div class="health-log-grid" style="margin-top: 20px;" >
-                        <div class="health-log-item"> <h4 id="log-steps">0</h4> <p>步數🫁</p> </div>
-                        <div class="health-log-item"> <h4 id="log-calories">0</h4> <p>大卡🫀</p> </div>
-                        <div class="health-log-item"> <h4 id="log-sleep">0</h4> <p>小時 (睡眠💤)</p> </div>
-                        <div class="health-log-item"> <h4 id="log-water">0</h4> <p>ml (飲水💦)</p> </div>
-                    </div>
-                </div>
-
-                <div class="glass-card">
-                    <h3> ✍🏻記錄健康行為</h3>
-                    <div class="health-input-group">
-                        <input type="number" id="steps-input" class="input-field" placeholder="輸入步數👣">
-                        <button class="primary-button" data-action="submit-steps" style="margin-top:0; padding: 12px;">記錄</button>
-                    </div>
-                     <div class="health-input-group">
-                        <input type="number" id="calories-input" class="input-field" placeholder="輸入消耗大卡💪🏻">
-                        <button class="primary-button" data-action="submit-calories" style="margin-top:0; padding: 12px;">記錄</button>
-                    </div>
-                    <div class="health-input-group">
-                        <input type="number" id="sleep-input" class="input-field" placeholder="輸入睡眠時數💆🏻">
-                        <button class="primary-button" data-action="submit-sleep" style="margin-top:0; padding: 12px;">記錄</button>
-                    </div>
-                    <div class="quick-add-buttons">
-                        <button class="quick-add-btn" data-action="add-steps" data-value="1000">+1000 步</button>
-                        <button class="quick-add-btn" data-action="add-calories" data-value="100">+100 大卡</button>
-                        <button class="quick-add-btn" data-action="add-sleep" data-value="1">+1 小時睡眠</button>
-                    </div> <hr style="border-color: var(--border-color); margin: 20px 0;">
-
-                    <button id="sync-health-data-btn" class="primary-button" style="background: linear-gradient(45deg, #2de263, #80cedd); margin-bottom: 10px;">
-                        <i class="ph-fill ph-cell-signal-full"></i> 同步手機/穿戴裝置數據📥
-                    </button>
-                    
-                    <button class="primary-button" data-action="add-water">我喝了 500ml 水🫗</button>
-                </div>
-
-                <div class="glass-card grid-card" data-screen="chest-screen">
-                    <i class="ph-fill ph-treasure-chest"></i>開啟寶箱
-                </div>
-                <div class="glass-card grid-card" data-screen="profession-screen">
-                    <i class="ph-fill ph-briefcase"></i>職業
+                <div class="profile-level-xp">
+                    <span id="player-level-main">Lv. 1</span>
+                    <span id="player-equipped-title" class="equipped-title"></span>
                 </div>
             </div>
         </div>
-        
-        <div id="inventory-screen" class="screen">
-            <div class="main-content">
+        <div class="glass-card level-progress-card">
+            <div class="level-info">
+                <span>經驗值</span>
+                <span id="player-xp-main">0 / 100 (0.00%)</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div id="level-progress-bar"></div>
+            </div>
+        </div>
+        <div class="glass-card">
+            <div class="points-header">
+                <h3>📊 能力值</h3>
+                <button id="reset-stats-btn">重置♻️</button>
+            </div>
+            <div id="unassigned-points-display" style="text-align: right; margin-bottom: 10px; font-size: 14px; color: var(--primary-accent-color);">剩餘點數：0</div>
+            <div class="stat-item">
+                <div class="stat-name-value"> <i class="ph-fill ph-barbell" style="color:#FF6B6B;"></i> <span>力量</span> <span class="stat-value" id="strength-value">0</span> </div>
+                <div class="stat-controls"> <button class="stat-btn" data-stat="strength" data-action="plus">+</button> <button class="info-btn" data-stat-info="strength"><i class="ph-fill ph-info"></i></button> </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-name-value"> <i class="ph-fill ph-shield" style="color:#FFA726;"></i> <span>耐力</span> <span class="stat-value" id="stamina-value">0</span> </div>
+                <div class="stat-controls"> <button class="stat-btn" data-stat="stamina" data-action="plus">+</button> <button class="info-btn" data-stat-info="stamina"><i class="ph-fill ph-info"></i></button> </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-name-value"> <i class="ph-fill ph-wind" style="color:#FFEE58;"></i> <span>敏捷</span> <span class="stat-value" id="agility-value">0</span> </div>
+                <div class="stat-controls"> <button class="stat-btn" data-stat="agility" data-action="plus">+</button> <button class="info-btn" data-stat-info="agility"><i class="ph-fill ph-info"></i></button> </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-name-value"> <i class="ph-fill ph-brain" style="color:#42A5F5;"></i> <span>智力</span> <span class="stat-value" id="intelligence-value">0</span> </div>
+                <div class="stat-controls"> <button class="stat-btn" data-stat="intelligence" data-action="plus">+</button> <button class="info-btn" data-stat-info="intelligence"><i class="ph-fill ph-info"></i></button> </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-name-value"> <i class="ph-fill ph-clover" style="color:#AB47BC;"></i> <span>運氣</span> <span class="stat-value" id="luck-value">0</span> </div>
+                <div class="stat-controls"> <button class="stat-btn" data-stat="luck" data-action="plus">+</button> <button class="info-btn" data-stat-info="luck"><i class="ph-fill ph-info"></i></button> </div>
+            </div>
+            <hr style="border-color: var(--border-color); margin: 20px 0;">
+            <div class="equipment-slots-container">
+                <div id="equipmentSlot1" class="equipment-slot"></div>
+                <div id="equipmentSlot2" class="equipment-slot"></div>
+            </div>
+        </div>
+        <div class="glass-card">
+            <h3><i class="ph-fill ph-list-heart"></i> <span id="health-log-date"></span> 健康紀錄</h3>
+            <button id="show-damage-data-btn" class="info-btn" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 8px;">累積傷害</button>
+            <div class="health-log-grid" style="margin-top: 20px;">
+                <div class="health-log-item"> <h4 id="log-steps">0</h4> <p>步數🫁</p> </div>
+                <div class="health-log-item"> <h4 id="log-calories">0</h4> <p>大卡🫀</p> </div>
+                <div class="health-log-item"> <h4 id="log-sleep">0</h4> <p>小時 (睡眠💤)</p> </div>
+                <div class="health-log-item"> <h4 id="log-water">0</h4> <p>ml (飲水💦)</p> </div>
+            </div>
+        </div>
+        <div class="glass-card">
+             <h3><i class="ph-fill ph-pencil-simple-line"></i> 記錄健康行為</h3>
+            <div class="health-input-group"> <input type="number" id="steps-input" class="input-field" placeholder="輸入步數👣"> <button class="primary-button" data-action="submit-steps" style="margin-top:0; padding: 12px;">記錄</button> </div>
+            <div class="health-input-group"> <input type="number" id="calories-input" class="input-field" placeholder="輸入消耗大卡💪🏻"> <button class="primary-button" data-action="submit-calories" style="margin-top:0; padding: 12px;">記錄</button> </div>
+            <div class="health-input-group"> <input type="number" id="sleep-input" class="input-field" placeholder="輸入睡眠時數💆🏻"> <button class="primary-button" data-action="submit-sleep" style="margin-top:0; padding: 12px;">記錄</button> </div>
+            <div class="quick-add-buttons"> <button class="quick-add-btn" data-action="add-steps" data-value="1000">+1000 步</button> <button class="quick-add-btn" data-action="add-calories" data-value="100">+100 大卡</button> <button class="quick-add-btn" data-action="add-sleep" data-value="1">+1 小時睡眠</button> </div>
+            <hr style="border-color: var(--border-color); margin: 20px 0;">
+            <button id="sync-health-data-btn" class="primary-button" style="background: linear-gradient(45deg, #2de263, #80cedd); margin-bottom: 10px;"> <i class="ph-fill ph-cell-signal-full"></i> 同步手機/穿戴裝置數據📥 </button>
+            <button class="primary-button" data-action="add-water">我喝了 500ml 水🫗</button>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="glass-card grid-card" data-screen="chest-screen"> <i class="ph-fill ph-treasure-chest"></i>開啟寶箱 </div>
+            <div class="glass-card grid-card" data-screen="profession-screen"> <i class="ph-fill ph-briefcase"></i>職業 </div>
+        </div>
+    </div>
+</div>   <div id="inventory-screen" class="screen">
+        <div class="main-content">
                 <h2 class="screen-title">道具倉庫📦</h2>
                 <div class="glass-card">
                     <div class="inventory-controls">
@@ -4645,7 +4679,7 @@ function createCharacter() {
 
         try {
             // 使用 fetch API 向我們的後端伺服器發送請求
-            const response = await fetch('http://localhost:3000/api/chat', {
+            const response = await fetch('https://playfit-nzql.onrender.com', {
                 method: 'POST', // 使用 POST 方法
                 headers: {
                     'Content-Type': 'application/json', // 告訴伺服器我們發送的是 JSON
@@ -4847,7 +4881,7 @@ function createCharacter() {
             reel.innerHTML = '';
 
             // 為了讓動畫看起來更真實，我們重複列表多次
-            const repeatedItems = [...items, ...items, ...items, ...items, ...items];
+            const repeatedItems = [...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items];
             repeatedItems.forEach(item => {
                 const reelItem = document.createElement('div');
                 reelItem.className = 'reel-item';
@@ -4857,32 +4891,44 @@ function createCharacter() {
         }
 
         function spinDiner() {
-            if (!currentDinerCategory) return;
-            soundManager.play('reel_spin');
-            const btn = document.getElementById('diner-spin-btn');
-            btn.disabled = true;
+                if (!currentDinerCategory) return;
+                soundManager.play('reel_spin');
 
-            const items = dinerData[currentDinerCategory];
-            const reel = document.getElementById('diner-reel');
-            const itemHeight = 50; 
+                const btn = document.getElementById('diner-spin-btn');
+                btn.disabled = true;
 
-            const randomIndex = Math.floor(Math.random() * items.length);
-            const targetItem = items[randomIndex];
+                const items = dinerData[currentDinerCategory];
+                const reel = document.getElementById('diner-reel');
+                const itemHeight = 50;
 
-            const targetPosition = (items.length * 2) + randomIndex;
-            const spinDistance = -(targetPosition * itemHeight - (150 - itemHeight) / 2);
+                // ✨--- 核心修正：動畫重置流程 ---✨
+                // 步驟 1: 先瞬間取消動畫效果，並將滾輪拉回頂部
+                reel.style.transition = 'none';
+                reel.style.transform = 'translateY(0)';
 
-            // ✨ 修改點 #1: 將動畫時間從 3s 改為 5s，讓它轉得更久、更有期待感！ ✨
-            reel.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
-            reel.style.transform = `translateY(${spinDistance}px)`;
+                // 步驟 2: 使用 setTimeout 技巧，強制瀏覽器先完成上面的重置操作
+                setTimeout(() => {
+                    // 步驟 3: 現在可以安全地開始新的動畫了！
+                    const randomIndex = Math.floor(Math.random() * items.length);
+                    const targetItem = items[randomIndex];
 
-            // ✨ 修改點 #2: 將等待結果的時間延長到 5.5 秒，確保動畫能完整播完 ✨
-            setTimeout(() => {
-                btn.disabled = false;
-                soundManager.play('success');
-                showModal(`就決定今天${currentDinerCategory}吃【${targetItem}】🤤🤤🤤！！`, null, true);
-            }, 4500); 
-        }
+                    // 轉很多圈的計算公式
+                    const targetPosition = (items.length * 5) + randomIndex;
+                    const spinDistance = -(targetPosition * itemHeight - (150 - itemHeight) / 2);
+
+                    // 設定本次的轉動動畫
+                    reel.style.transition = 'transform 4s cubic-bezier(0.25, 1, 0.5, 1)';
+                    reel.style.transform = `translateY(${spinDistance}px)`;
+
+                    // 設定等待結果的時間
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        soundManager.play('success');
+                        showModal(`就決定今天${currentDinerCategory}吃【${targetItem}】🤤🤤🤤！！`, null, true);
+                    }, 3500); 
+
+                }, 20); // 給予一個極短的延遲即可
+            }
 
         // --- 編輯功能 ---
         function openEditDinerModal() {
