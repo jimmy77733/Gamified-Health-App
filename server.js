@@ -1,4 +1,4 @@
-// server.js (最終修正版)
+// server.js (最終強化版)
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -10,17 +10,14 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-// 步驟 1: 設定靜態檔案資料夾
-// 告訴 Express，所有像是 .js, .css, .mp3, .png 的檔案，都可以在根目錄找到
+
+// --- 核心修正點：使用更標準的路由設定 ---
+
+// 1. 設定靜態檔案的提供路徑
+// 告訴 Express，所有像是 index.html, .js, .css, .mp3 的檔案，都放在根目錄
 app.use(express.static(path.join(__dirname, '')));
 
-// 步驟 2: 明確地設定根路徑 (/) 的規則
-// 這就是我們新增的「待客之道」！
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// AI 聊天 API 端點 (保持不變)
+// 2. 設定 AI 聊天的 API 路徑 (這個要放在 fallback 前面)
 app.post('/api/chat', async (req, res) => {
     try {
         const { userInput, playerContext } = req.body;
@@ -59,7 +56,9 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-// 處理所有其他未匹配的請求，都回傳 index.html (這對於單頁應用很重要)
+// 3. 設定「後備」路由 (Fallback Route)
+// 這一行非常重要，它會處理所有未被上面匹配到的 GET 請求
+// 將它們全部導向到 index.html，這對於單頁應用 (SPA) 是標準做法。
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
