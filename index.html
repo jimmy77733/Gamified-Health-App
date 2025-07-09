@@ -2006,6 +2006,8 @@
 
     <script>
 
+        const API_BASE_URL = 'https://playfit-nzql.onrender.com'; // 線上模式
+        // const API_BASE_URL = 'http://10.0.2.2:3000';  //本機模式
         const MANUAL_INPUT_CAPS = {
                 steps: 30000,    // 每日手動步數上限
                 calories: 3000,  // 每日手動大卡上限
@@ -2062,23 +2064,23 @@
             loadSounds: function() {
                 // ✨ 修正 #1 & #2: 全部改用正斜線 /
                 this.sounds = {
-                    'click':      new Audio('./sounds/click.mp3'),
-                    'switch':     new Audio('./sounds/switch.mp3'),
-                    'success':    new Audio('./sounds/level.mp3'),
-                    'reel_spin':  new Audio('./sounds/spin.mp3'),
-                    'chest_open': new Audio('./sounds/open.mp3'),
-                    'break':      new Audio('./sounds/break.mp3'),
-                    'back':       new Audio('./sounds/back.mp3'),
-                    'hit':        new Audio('./sounds/hit.mp3'),
-                    'win':        new Audio('./sounds/win.mp3'),
-                    'shine':      new Audio('./sounds/shine.mp3'),
-                    'level':      new Audio('./sounds/level.mp3'),
-                    'success':    new Audio('./sounds/success.mp3'),
-                    'equipment':  new Audio('./sounds/equipment.mp3'),
-                    'useitem':    new Audio('./sounds/useitem.mp3'),
-                    'wrong':      new Audio('./sounds/wrong.mp3'),
-                    'drink':      new Audio('./sounds/drink.mp3'),
-                    'down':       new Audio('./sounds/down.mp3')
+                    'click':      new Audio('/sounds/click.mp3'),
+                    'switch':     new Audio('/sounds/switch.mp3'),
+                    'success':    new Audio('/sounds/level.mp3'),
+                    'reel_spin':  new Audio('/sounds/spin.mp3'),
+                    'chest_open': new Audio('/sounds/open.mp3'),
+                    'break':      new Audio('/sounds/break.mp3'),
+                    'back':       new Audio('/sounds/back.mp3'),
+                    'hit':        new Audio('/sounds/hit.mp3'),
+                    'win':        new Audio('/sounds/win.mp3'),
+                    'shine':      new Audio('/sounds/shine.mp3'),
+                    'level':      new Audio('/sounds/level.mp3'),
+                    'success':    new Audio('/sounds/success.mp3'),
+                    'equipment':  new Audio('/sounds/equipment.mp3'),
+                    'useitem':    new Audio('/sounds/useitem.mp3'),
+                    'wrong':      new Audio('/sounds/wrong.mp3'),
+                    'drink':      new Audio('/sounds/drink.mp3'),
+                    'down':       new Audio('/sounds/down.mp3')
                 };
 
                 // 設定音量，避免太大聲
@@ -2376,6 +2378,99 @@
             });
         }
 
+        // ✨ 新增的 HealthSync 物件，專門負責與手機健康數據溝通 ✨
+            const HealthSync = {
+                // 1. 向使用者請求授權
+                async requestPermissions() {
+                    try {
+                        // 從 Capacitor 的插件中取得 Health 這個工具
+                        const { Health } = Capacitor.Plugins;
+                        await Health.requestAuthorization({
+                            permissions: {
+                                read: ['steps', 'calories', 'activity', 'sleep', 'heart_rate']
+                            }
+                        });
+                        console.log('健康數據授權請求完畢');
+                        return true;
+                    } catch (error) {
+                        soundManager.play('wrong');
+                        console.error('健康數據授權失敗', error);
+                        showModal('無法取得健康數據授權，請檢查手機的權限設定。', null, true);
+                        return false;
+                    }
+                },
+
+                // 2. 查詢今天的健康數據
+                async queryTodayData() {
+                    try {
+                        const { Health } = Capacitor.Plugins;
+                        const today = new Date();
+                        const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); // 設定查詢起點為今天凌晨 0 點
+
+                        // 查詢步數
+                        const stepsResult = await Health.query({
+                            startDate: startDate,
+                            endDate: today,
+                            dataType: 'steps',
+                        });
+                        const totalSteps = stepsResult.reduce((sum, record) => sum + Number(record.value), 0);
+
+                        // 查詢消耗的卡路里 (範例)
+                        const caloriesResult = await Health.query({
+                            startDate: startDate,
+                            endDate: today,
+                            dataType: 'calories',
+                        });
+                        const totalCalories = caloriesResult.reduce((sum, record) => sum + Number(record.value), 0);
+
+                        console.log(`今天同步到的數據: 步數=${totalSteps}, 卡路里=${totalCalories}`);
+                        // 注意：睡眠數據的查詢方式較為複雜，這裡先回傳步數與卡路里
+                        return { steps: Math.round(totalSteps), calories: Math.round(totalCalories), sleep: 0, water: player.todayData.device.water };
+
+                    } catch (error) {
+                        soundManager.play('wrong');
+                        console.error('查詢健康數據時發生錯誤', error);
+                        showModal('讀取健康數據時發生錯誤。', null, true);
+                        return null;
+                    }
+                },
+
+                // 3. 執行的主函式
+                async sync() {
+                    // 檢查是否在手機環境
+                    if (!Capacitor.isNativePlatform()) {
+                        soundManager.play('wrong');
+                        showModal('此功能僅限在手機 App 中使用喔！', null, true);
+                        return;
+                    }
+
+                    showModal('正在請求授權...', null, false);
+                    const hasPermission = await this.requestPermissions();
+                    if (!hasPermission) return;
+
+                    showModal('正在同步健康數據...', null, false);
+                    const healthData = await this.queryTodayData();
+
+                    if (healthData) {
+                        // 將同步到的數據更新到 player 物件的 device 部分
+                        player.todayData.device.steps = healthData.steps;
+                        player.todayData.device.calories = healthData.calories;
+
+                        // 重新計算總和並更新畫面
+                        calculateTotalHealthData();
+                        updateHealthLogUI();
+                        savePlayerData();
+
+                        soundManager.play('success');
+                        showModal('同步成功！你的數據已更新！', null, true);
+                    } else {
+                        soundManager.play('wrong');
+                        showModal('同步失敗，請稍後再試。', null, true);
+                    }
+                }
+            };
+
+
         // 程式碼功能說明: UI 更新聚合函式
         // 一個方便的函式，用來一次更新所有畫面上的玩家相關資訊。
         function updateAllUI() {
@@ -2637,6 +2732,7 @@
 
             //  為「同步按鈕」加上點擊事件！ 
             document.getElementById('sync-health-data-btn').addEventListener('click', () => {
+                HealthSync.sync();
                 soundManager.play('click');
                 
                 // --- ✨ 未來原生 App 數據接入點 ✨ ---
@@ -2963,7 +3059,7 @@ function createCharacter() {
                 if (!email || !password) return showModal("請輸入Email和密碼！", null, true);
 
                 try {
-                    const response = await fetch('/api/login', {
+                    const response = await fetch(`${API_BASE_URL}/api/chat`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email, password })
