@@ -1347,6 +1347,7 @@
                 <div class="glass-card">
                     <button id="show-login-btn" class="primary-button">登入</button>
                     <button id="show-register-btn" class="primary-button" style="background: transparent; border: 1px solid var(--primary-accent-color); color: var(--primary-accent-color);">註冊新帳號</button>
+                    <button id="guest-login-btn" class="primary-button" style="background: transparent; border: none; color: var(--text-color-light); margin-top: 15px; font-size: 16px;">以訪客身份繼續</button>
                 </div>
             </div>
         </div>
@@ -1433,7 +1434,7 @@
             </div>
         </div>
 
-<div id="main-app" class="screen active"> <div class="main-content">
+<div id="main-app" class="screen"> <div class="main-content">
         <div class="glass-card player-profile-card">
             <div id="player-avatar-main-wrapper">
                 </div>
@@ -2168,6 +2169,15 @@
             }
         }
 
+        function handleGuestLogin() {
+            // 為訪客建立一個獨一無二的臨時ID
+            currentUserIdentifier = `guest_${Date.now()}`;
+            player = {}; // 建立一個空的玩家物件
+            showScreen('character-creation-screen'); // 直接跳到創建角色畫面
+            bottomNav.classList.remove('active');
+        }
+
+
         function onLoginSuccess(token, userIdentifier) {
             localStorage.setItem('currentUserToken', token);
             currentUserIdentifier = userIdentifier;
@@ -2537,6 +2547,7 @@
             // --- 新增的登入/註冊按鈕事件 ---
             document.getElementById('show-login-btn').addEventListener('click', () => showScreen('login-screen'));
             document.getElementById('show-register-btn').addEventListener('click', () => showScreen('register-screen'));
+            document.getElementById('guest-login-btn').addEventListener('click', handleGuestLogin)
             document.getElementById('login-btn').addEventListener('click', handleLogin);
             document.getElementById('register-btn').addEventListener('click', handleRegister);
             
@@ -2947,33 +2958,45 @@ function createCharacter() {
 
         // 程式碼功能說明: 處理 Email/密碼登入
         async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            if (!email || !password) return showModal("請輸入Email和密碼！", null, true);
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                if (!email || !password) return showModal("請輸入Email和密碼！", null, true);
 
-            try {
-                const session = await mockAuthServer.login(email, password);
-                onLoginSuccess(session.token, session.email);
-            } catch (error) {
-                showModal(`登入失敗：${error}`, null, true);
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message);
+                    // 登入成功後，呼叫我們本來就有的 onLoginSuccess 函式
+                    onLoginSuccess(data.token, data.email);
+                } catch (error) {
+                    showModal(`登入失敗：${error.message}`, null, true);
+                }
             }
-        }
         
         // 程式碼功能說明: 處理註冊 
         async function handleRegister() {
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            if (!email || !password) return showModal("請輸入Email和密碼！", null, true);
-            if (password.length < 6) return showModal("密碼長度至少需要6位！", null, true);
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                if (!email || !password) return showModal("請輸入Email和密碼！", null, true);
+                if (password.length < 6) return showModal("密碼長度至少需要6位！", null, true);
 
-            try {
-                const message = await mockAuthServer.register(email, password);
-                // 為這個新註冊的 email 創建一個玩家存檔
-                showModal(message, () => showScreen('login-screen'));
-            } catch (error) {
-                showModal(`註冊失敗：${error}`, null, true);
+                try {
+                    const response = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message);
+                    showModal(data.message, () => showScreen('login-screen'));
+                } catch (error) {
+                    showModal(`註冊失敗：${error.message}`, null, true);
+                }
             }
-        }
         
         // 程式碼功能說明: 處理社交登入 
         async function handleSocialLogin(provider) {
@@ -4924,7 +4947,7 @@ function createCharacter() {
                     setTimeout(() => {
                         btn.disabled = false;
                         soundManager.play('success');
-                        showModal(`就決定今天${currentDinerCategory}吃【${targetItem}】🤤🤤🤤！！`, null, true);
+                        showModal(`就決定今天${currentDinerCategory}吃【${targetItem}】\n 🤤🤤🤤！！`, null, true);
                     }, 3500); 
 
                 }, 20); // 給予一個極短的延遲即可

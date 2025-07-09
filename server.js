@@ -14,6 +14,30 @@ app.use(express.json());
 // 1. 設定靜態檔案的提供路徑 (最標準的寫法)
 app.use(express.static(path.join(__dirname, '')));
 
+// ✨ 新增的註冊 API
+app.post('/api/register', (req, res) => {
+    const { email, password } = req.body;
+    if (users[email]) {
+        return res.status(400).json({ message: '此 Email 已被註冊' });
+    }
+    users[email] = { password };
+    console.log('新用戶註冊:', email);
+    res.status(201).json({ message: '註冊成功！現在你可以登入了。' });
+});
+
+// ✨ 新增的登入 API
+app.post('/api/login', (req, res) => {
+    const { email, password } = req.body;
+    const user = users[email];
+    if (!user || user.password !== password) {
+        return res.status(401).json({ message: 'Email 或密碼錯誤' });
+    }
+    const token = `token_${Date.now()}_${email}`;
+    sessions[token] = { email };
+    console.log('用戶登入:', email);
+    res.json({ token, email });
+});
+
 // 2. 設定 AI 聊天的 API 路徑
 app.post('/api/chat', async (req, res) => {
     try {
