@@ -1,38 +1,30 @@
-// 程式碼功能說明: 後端伺服器主程式
-// 然後帶著我們安全的API金鑰去跟Google AI溝通，再把結果回傳。
-
+// server.js (最終修正版)
 const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors'); // 引入 cors 套件
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// 這會讀取我們等一下要建立的 .env 檔案，讓我們可以使用裡面的變數
-dotenv.config();
-
-// 建立一個 Express 應用程式
 const app = express();
-const port = 3000; // 伺服器將會在這個端口上運行
+const port = process.env.PORT || 3000;
 
-// --- 核心設定 ---
-app.use(cors()); // ✨ 使用 cors 中間件，允許所有來源的請求 
-app.use(express.json()); // 讓我們的伺服器能讀懂 JSON 格式的請求
+app.use(cors());
+app.use(express.json());
+// 步驟 1: 設定靜態檔案資料夾
+// 告訴 Express，所有像是 .js, .css, .mp3, .png 的檔案，都可以在根目錄找到
+app.use(express.static(path.join(__dirname, '')));
 
-// 建立一個 API 端點(Endpoint)，路徑是 /api/chat
+// 步驟 2: 明確地設定根路徑 (/) 的規則
+// 這就是我們新增的「待客之道」！
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// AI 聊天 API 端點 (保持不變)
 app.post('/api/chat', async (req, res) => {
     try {
-        // 從前端傳來的請求中，取得使用者輸入的訊息
-        const userInput = req.body.userInput;
-        const playerContext = req.body.playerContext;
-
-        if (!userInput) {
-            return res.status(400).json({ error: '使用者輸入不能為空！' });
-        }
-
-        // 動態載入 @google/generative-ai
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-
-        // 從環境變數中讀取我們神聖的 API 金鑰
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const { userInput, playerContext } = req.body;
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `
             你是一個聰明且全能的智能小助手。
@@ -56,21 +48,22 @@ app.post('/api/chat', async (req, res) => {
 
             請根據你的角色和玩家資料，並遵守【重要規則】，給出一個活潑、有幫助的回應。
         `;
-
+            
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
-
-        // 將 Gemini AI 的回答回傳給前端
         res.json({ response: text });
-
     } catch (error) {
-        console.error('後端伺服器出錯:', error);
-        res.status(500).json({ error: '與 AI 溝通時發生內部錯誤。' });
+        console.error(error);
+        res.status(500).json({ error: 'AI 伺服器出錯了！' });
     }
 });
 
-// 啟動伺服器，讓它開始監聽請求
+// 處理所有其他未匹配的請求，都回傳 index.html (這對於單頁應用很重要)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.listen(port, () => {
-    console.log(`🚀 後端秘密基地已啟動，正在 http://localhost:${port} 站崗！`);
+    console.log(`伺服器正在 http://localhost:${port} 上運行`);
 });
