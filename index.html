@@ -2006,6 +2006,8 @@
 
     <script>
 
+        const API_BASE_URL = 'https://playfit-nzql.onrender.com'; // 線上模式
+        // const API_BASE_URL = 'http://10.0.2.2:3000';  //本機模式
         const MANUAL_INPUT_CAPS = {
                 steps: 30000,    // 每日手動步數上限
                 calories: 3000,  // 每日手動大卡上限
@@ -2062,32 +2064,29 @@
             loadSounds: function() {
                 // ✨ 修正 #1 & #2: 全部改用正斜線 /
                 this.sounds = {
-                    'click':      new Audio('./sounds/click.mp3'),
-                    'switch':     new Audio('./sounds/switch.mp3'),
-                    'success':    new Audio('./sounds/level.mp3'),
-                    'reel_spin':  new Audio('./sounds/spin.mp3'),
-                    'chest_open': new Audio('./sounds/open.mp3'),
-                    'break':      new Audio('./sounds/break.mp3'),
-                    'back':       new Audio('./sounds/back.mp3'),
-                    'hit':        new Audio('./sounds/hit.mp3'),
-                    'win':        new Audio('./sounds/win.mp3'),
-                    'shine':      new Audio('./sounds/shine.mp3'),
-                    'level':      new Audio('./sounds/level.mp3'),
-                    'success':    new Audio('./sounds/success.mp3'),
-                    'equipment':  new Audio('./sounds/equipment.mp3'),
-                    'useitem':    new Audio('./sounds/useitem.mp3'),
-                    'wrong':      new Audio('./sounds/wrong.mp3'),
-                    'drink':      new Audio('./sounds/drink.mp3'),
-                    'down':       new Audio('./sounds/down.mp3')
+                    'click':      new Audio('/sounds/click.mp3'),
+                    'switch':     new Audio('/sounds/switch.mp3'),
+                    'success':    new Audio('/sounds/level.mp3'),
+                    'reel_spin':  new Audio('/sounds/spin.mp3'),
+                    'chest_open': new Audio('/sounds/open.mp3'),
+                    'break':      new Audio('/sounds/break.mp3'),
+                    'back':       new Audio('/sounds/back.mp3'),
+                    'hit':        new Audio('/sounds/hit.mp3'),
+                    'win':        new Audio('/sounds/win.mp3'),
+                    'shine':      new Audio('/sounds/shine.mp3'),
+                    'level':      new Audio('/sounds/level.mp3'),
+                    'success':    new Audio('/sounds/success.mp3'),
+                    'equipment':  new Audio('/sounds/equipment.mp3'),
+                    'useitem':    new Audio('/sounds/useitem.mp3'),
+                    'wrong':      new Audio('/sounds/wrong.mp3'),
+                    'drink':      new Audio('/sounds/drink.mp3'),
+                    'down':       new Audio('/sounds/down.mp3')
                 };
 
                 // 設定音量，避免太大聲
                 Object.values(this.sounds).forEach(sound => {
-                    sound.volume = 0.7;
+                    sound.volume = 0.5;
                 });
-                if (this.sounds['chest_open']) {
-                this.sounds['chest_open'].volume = 0.2; 
-            }
                 
         const statTranslations = {
             strength: '力量', stamina: '耐力', agility: '敏捷',
@@ -3060,7 +3059,7 @@ function createCharacter() {
                 if (!email || !password) return showModal("請輸入Email和密碼！", null, true);
 
                 try {
-                    const response = await fetch('/api/login', {
+                    const response = await fetch(`${API_BASE_URL}/api/login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email, password })
