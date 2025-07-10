@@ -1882,7 +1882,7 @@
         </div>
     </div>
     
-    <div id="quick-salvage-modal" class="modal-overlay">
+    <div id="quick-salvage-modal" class="modal-overlay" style="z-index: 5000;">
         <div class="modal-content">
             <h3>一鍵回收</h3>
             <p>選擇要批量回收的道具類型與稀有度。此操作將回收所有未標記為最愛的道具。</p>
@@ -2006,12 +2006,10 @@
 
     <script>
 
-        const API_BASE_URL = 'https://playfit-nzql.onrender.com'; // 線上模式
-        // const API_BASE_URL = 'http://10.0.2.2:3000';  //本機模式
         const MANUAL_INPUT_CAPS = {
-                steps: 30000,    // 每日手動步數上限
-                calories: 3000,  // 每日手動大卡上限
-                sleep: 16,       // 每日手動睡眠上限
+                steps: 100000,    // 每日手動步數上限
+                calories: 5000,  // 每日手動大卡上限
+                sleep: 24,       // 每日手動睡眠上限
                 water: 10000      // 每日手動飲水上限
             };
 
@@ -2064,29 +2062,32 @@
             loadSounds: function() {
                 // ✨ 修正 #1 & #2: 全部改用正斜線 /
                 this.sounds = {
-                    'click':      new Audio('/sounds/click.mp3'),
-                    'switch':     new Audio('/sounds/switch.mp3'),
-                    'success':    new Audio('/sounds/level.mp3'),
-                    'reel_spin':  new Audio('/sounds/spin.mp3'),
-                    'chest_open': new Audio('/sounds/open.mp3'),
-                    'break':      new Audio('/sounds/break.mp3'),
-                    'back':       new Audio('/sounds/back.mp3'),
-                    'hit':        new Audio('/sounds/hit.mp3'),
-                    'win':        new Audio('/sounds/win.mp3'),
-                    'shine':      new Audio('/sounds/shine.mp3'),
-                    'level':      new Audio('/sounds/level.mp3'),
-                    'success':    new Audio('/sounds/success.mp3'),
-                    'equipment':  new Audio('/sounds/equipment.mp3'),
-                    'useitem':    new Audio('/sounds/useitem.mp3'),
-                    'wrong':      new Audio('/sounds/wrong.mp3'),
-                    'drink':      new Audio('/sounds/drink.mp3'),
-                    'down':       new Audio('/sounds/down.mp3')
+                    'click':      new Audio('./sounds/click.mp3'),
+                    'switch':     new Audio('./sounds/switch.mp3'),
+                    'success':    new Audio('./sounds/level.mp3'),
+                    'reel_spin':  new Audio('./sounds/spin.mp3'),
+                    'chest_open': new Audio('./sounds/open.mp3'),
+                    'break':      new Audio('./sounds/break.mp3'),
+                    'back':       new Audio('./sounds/back.mp3'),
+                    'hit':        new Audio('./sounds/hit.mp3'),
+                    'win':        new Audio('./sounds/win.mp3'),
+                    'shine':      new Audio('./sounds/shine.mp3'),
+                    'level':      new Audio('./sounds/level.mp3'),
+                    'success':    new Audio('./sounds/success.mp3'),
+                    'equipment':  new Audio('./sounds/equipment.mp3'),
+                    'useitem':    new Audio('./sounds/useitem.mp3'),
+                    'wrong':      new Audio('./sounds/wrong.mp3'),
+                    'drink':      new Audio('./sounds/drink.mp3'),
+                    'down':       new Audio('./sounds/down.mp3')
                 };
 
                 // 設定音量，避免太大聲
                 Object.values(this.sounds).forEach(sound => {
-                    sound.volume = 0.5;
+                    sound.volume = 0.9;
                 });
+                if (this.sounds['chest_open']) {
+                this.sounds['chest_open'].volume = 0.2; 
+            }
                 
         const statTranslations = {
             strength: '力量', stamina: '耐力', agility: '敏捷',
@@ -2379,98 +2380,104 @@
         }
 
         // ✨ 新增的 HealthSync 物件，專門負責與手機健康數據溝通 ✨
-            const HealthSync = {
-                // 1. 向使用者請求授權
-                async requestPermissions() {
-                    try {
-                        // 從 Capacitor 的插件中取得 Health 這個工具
-                        const { Health } = Capacitor.Plugins;
-                        await Health.requestAuthorization({
-                            permissions: {
-                                read: ['steps', 'calories', 'activity', 'sleep', 'heart_rate']
-                            }
-                        });
-                        console.log('健康數據授權請求完畢');
-                        return true;
-                    } catch (error) {
-                        soundManager.play('wrong');
-                        console.error('健康數據授權失敗', error);
-                        showModal('無法取得健康數據授權，請檢查手機的權限設定。', null, true);
-                        return false;
-                    }
-                },
+            // ✨ 全新、更穩健的 HealthSync 物件 ✨
+// ✨ 全新、結構更穩健的 HealthSync 物件 ✨
+// ✨ 全新、採用「引導式」策略的 HealthSync 物件 ✨
+const HealthSync = {
+    isNative: function() {
+        return Capacitor.isNativePlatform();
+    },
 
-                // 2. 查詢今天的健康數據
-                async queryTodayData() {
-                    try {
-                        const { Health } = Capacitor.Plugins;
-                        const today = new Date();
-                        const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); // 設定查詢起點為今天凌晨 0 點
+    // 這個函式現在只負責檢查權限，不再主動請求
+    checkAuthStatus: async function() {
+        if (!this.isNative()) return 'unsupported';
+        try {
+            const { Health } = Capacitor.Plugins;
+            const result = await Health.checkPermissions();
+            // 檢查我們需要的核心權限是否都被同意了
+            const allGranted = ['steps', 'calories'].every(p => result[p] === 'granted');
+            return allGranted ? 'granted' : 'denied';
+        } catch (error) {
+            console.error('[error] 檢查健康數據權限時失敗', error);
+            return 'error';
+        }
+    },
 
-                        // 查詢步數
-                        const stepsResult = await Health.query({
-                            startDate: startDate,
-                            endDate: today,
-                            dataType: 'steps',
-                        });
-                        const totalSteps = stepsResult.reduce((sum, record) => sum + Number(record.value), 0);
-
-                        // 查詢消耗的卡路里 (範例)
-                        const caloriesResult = await Health.query({
-                            startDate: startDate,
-                            endDate: today,
-                            dataType: 'calories',
-                        });
-                        const totalCalories = caloriesResult.reduce((sum, record) => sum + Number(record.value), 0);
-
-                        console.log(`今天同步到的數據: 步數=${totalSteps}, 卡路里=${totalCalories}`);
-                        // 注意：睡眠數據的查詢方式較為複雜，這裡先回傳步數與卡路里
-                        return { steps: Math.round(totalSteps), calories: Math.round(totalCalories), sleep: 0, water: player.todayData.device.water };
-
-                    } catch (error) {
-                        soundManager.play('wrong');
-                        console.error('查詢健康數據時發生錯誤', error);
-                        showModal('讀取健康數據時發生錯誤。', null, true);
-                        return null;
-                    }
-                },
-
-                // 3. 執行的主函式
-                async sync() {
-                    // 檢查是否在手機環境
-                    if (!Capacitor.isNativePlatform()) {
-                        soundManager.play('wrong');
-                        showModal('此功能僅限在手機 App 中使用喔！', null, true);
-                        return;
-                    }
-
-                    showModal('正在請求授權...', null, false);
-                    const hasPermission = await this.requestPermissions();
-                    if (!hasPermission) return;
-
-                    showModal('正在同步健康數據...', null, false);
-                    const healthData = await this.queryTodayData();
-
-                    if (healthData) {
-                        // 將同步到的數據更新到 player 物件的 device 部分
-                        player.todayData.device.steps = healthData.steps;
-                        player.todayData.device.calories = healthData.calories;
-
-                        // 重新計算總和並更新畫面
-                        calculateTotalHealthData();
-                        updateHealthLogUI();
-                        savePlayerData();
-
-                        soundManager.play('success');
-                        showModal('同步成功！你的數據已更新！', null, true);
-                    } else {
-                        soundManager.play('wrong');
-                        showModal('同步失敗，請稍後再試。', null, true);
-                    }
-                }
+    // 查詢數據的函式保持不變
+    queryTodayData: async function() {
+        // ... (這部分的程式碼與上次相同，無需修改) ...
+        if (!this.isNative()) return null;
+        try {
+            const { Health } = Capacitor.Plugins;
+            const today = new Date();
+            const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const stepsResult = await Health.query({ startDate: startDate, endDate: today, dataType: 'steps' });
+            const caloriesResult = await Health.query({ startDate: startDate, endDate: today, dataType: 'calories' });
+            const sleepResult = await Health.query({ startDate: startDate, endDate: today, dataType: 'sleep' });
+            const totalSteps = stepsResult.reduce((sum, record) => sum + Number(record.value), 0);
+            const totalCalories = caloriesResult.reduce((sum, record) => sum + Number(record.value), 0);
+            const totalSleep = sleepResult.reduce((sum, record) => sum + Number(record.value), 0);
+            return {
+                steps: Math.round(totalSteps),
+                calories: Math.round(totalCalories),
+                sleep: parseFloat((totalSleep / 3600).toFixed(2))
             };
+        } catch (error) {
+            console.error('[error] 查詢健康數據時發生錯誤', error);
+            return null;
+        }
+    },
 
+    // ✨ 全新的主函式，包含引導邏輯 ✨
+    sync: async function() {
+        if (!this.isNative()) {
+            showModal('此功能僅限在手機 App 中使用喔！', null, true);
+            return;
+        }
 
+        const authStatus = await this.checkAuthStatus();
+
+        if (authStatus === 'granted') {
+            // --- 權限已開啟，執行正常同步流程 ---
+            showModal('正在同步健康數據...', null, false);
+            const healthData = await this.queryTodayData();
+            hideModal('custom-modal');
+
+            if (healthData) {
+                player.todayData.device.steps = healthData.steps;
+                player.todayData.device.calories = healthData.calories;
+                player.todayData.device.sleep = healthData.sleep;
+                
+                calculateTotalHealthData();
+                updateHealthLogUI();
+                updateTaskProgress();
+                savePlayerData();
+
+                document.getElementById('steps-input').placeholder = `已同步 ${healthData.steps} 步`;
+                document.getElementById('calories-input').placeholder = `已同步 ${healthData.calories} 大卡`;
+                document.getElementById('sleep-input').placeholder = `已同步 ${healthData.sleep} 小時`;
+
+                soundManager.play('success');
+                showModal('同步成功！你的數據已更新！', null, true);
+            } else {
+                showModal('同步失敗，未抓取到任何數據。', null, true);
+            }
+        } else {
+            // --- 權限未開啟或被拒絕，彈出引導視窗 ---
+            showModal(
+                "為了自動更新您的任務進度，我們需要您手動開啟健康數據權限。\n\n" + 
+                "**設定路徑：**\n" +
+                "iPhone「設定」App > 「隱私權與安全性」 > 「健康」 > 找到「PlayFit」並開啟所有權限。\n\n" +
+                "*(開啟後請再試一次)*",
+                null,
+                true,
+                { title: "權限設定引導" }
+            );
+        }
+    }
+};
+
+        
         // 程式碼功能說明: UI 更新聚合函式
         // 一個方便的函式，用來一次更新所有畫面上的玩家相關資訊。
         function updateAllUI() {
@@ -2733,22 +2740,8 @@
             //  為「同步按鈕」加上點擊事件！ 
             document.getElementById('sync-health-data-btn').addEventListener('click', () => {
                 HealthSync.sync();
-                soundManager.play('click');
                 
-                // --- ✨ 未來原生 App 數據接入點 ✨ ---
-                // 功能解說: 我們已經將產生假數據的程式碼註解掉。
-                // 當未來的原生App開發完成後，原生程式碼(Swift/Kotlin)會在這裡呼叫
-                // window.syncWithNativeHealthData(DATA_FROM_HEALTH_KIT) 函式，
-                // 並把真實的健康數據傳進來。
-                
-                /* console.log("模擬從原生裝置同步數據...");
-                const fakeNativeData = {
-                    steps: Math.floor(Math.random() * 5000) + 1000, 
-                    calories: Math.floor(Math.random() * 200) + 50,
-                    sleep: Math.round((Math.random() * 2 + 6) * 10) / 10,
-                };
-                syncWithNativeHealthData(fakeNativeData); 
-                */    
+                // --- ✨ 未來原生 App 數據接入點 ✨ ---                   
                /*為了讓使用者知道按鈕有在運作，我們先顯示一個提示訊息。*/
                soundManager.play('wrong');
                showModal("正在等待與您的手機健康App連線...\n(此功能待原生App開發完成後啟用)", null, true);
@@ -2919,9 +2912,7 @@
                 if (currentDinerCategory) populateReel(dinerData[currentDinerCategory]);
             });
             document.getElementById('load-health-data-btn').addEventListener('click', () => {
-                updateTaskProgress();
-                soundManager.play('level');
-                showModal("健康數據已同步，任務進度已更新！", null, true);
+                HealthSync.sync();
             });
         }
         
@@ -3059,7 +3050,7 @@ function createCharacter() {
                 if (!email || !password) return showModal("請輸入Email和密碼！", null, true);
 
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/login`, {
+                    const response = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email, password })
@@ -3090,6 +3081,7 @@ function createCharacter() {
                     if (!response.ok) throw new Error(data.message);
                     showModal(data.message, () => showScreen('login-screen'));
                 } catch (error) {
+                    soundManager.play('wrong'); 
                     showModal(`註冊失敗：${error.message}`, null, true);
                 }
             }
@@ -3100,6 +3092,7 @@ function createCharacter() {
                 const session = await mockAuthServer.socialLogin(provider);
                 onLoginSuccess(session.token, session.email);
             } catch (error) {
+                soundManager.play('wrong'); 
                 showModal(`登入失敗：${error}`, null, true);
             }
         }
@@ -3142,15 +3135,18 @@ function createCharacter() {
 
             if (currentManualAmount >= cap) {
                 // 情況 A: 在輸入前，就已經達到或超過上限了
+                soundManager.play('sucess'); 
                 feedback = `記錄成功😁！\n\n但你今天手動輸入的「${statTranslations[type] || type}」已達上限，本次紀錄不會提供額外獎勵喔😂🤣🥺🥹😭！`;
                 valueToProcess = 0;
             } else {
                 // 情況 B: 本次輸入會超過上限
                 if (currentManualAmount + value > cap) {
                     valueToProcess = cap - currentManualAmount; // 計算剩餘的可獎勵額度
+                    soundManager.play('wrong'); 
                     feedback = `記錄成功，但已達每日上限！\n本次輸入僅有 ${valueToProcess.toFixed(0)} 的額度被計入獎勵計算。\n\n`;
                 } else {
                 // 情況 C: 本次輸入還在上限內
+                    soundManager.play('level'); 
                     valueToProcess = value; // 全部輸入都計入獎勵
                     feedback = `記錄成功！\n\n`;
                 }
@@ -3169,20 +3165,20 @@ function createCharacter() {
                     case 'steps': 
                         xpGained = Math.floor(valueToProcess / 1000) * 75;
                         statGains.stamina += Math.floor(valueToProcess / 1000) * 1;
-                        statGains.agility += Math.floor(valueToProcess / 100) * 1;
+                        statGains.agility += Math.floor(valueToProcess / 1000) * 1;
                         break;
                     case 'calories':
-                        xpGained = Math.floor(valueToProcess / 100) * 100;
+                        xpGained = Math.floor(valueToProcess / 100) * 90;
                         statGains.strength += Math.floor(valueToProcess / 100) * 1;
                         statGains.stamina += Math.floor(valueToProcess / 100) * 1;
                         break;
                     case 'sleep':
-                        xpGained = Math.floor(valueToProcess) * 80;
+                        xpGained = Math.floor(valueToProcess) * 100;
                         statGains.intelligence += Math.floor(valueToProcess) * 1;
                         statGains.stamina += Math.floor(valueToProcess) * 1;
                         break;
                     case 'water':
-                        xpGained = Math.floor(valueToProcess / 500) * 80;
+                        xpGained = Math.floor(valueToProcess / 500) * 100;
                         statGains.stamina += Math.floor(valueToProcess / 500) * 1;
                         statGains.intelligence += Math.floor(valueToProcess / 500) * 1;
                         break;
@@ -3568,9 +3564,8 @@ function createCharacter() {
             }
             // 放回倉庫
             player.inventory.push(itemToUnequip);
-            soundManager.play('back');
+            soundManager.play('down');
             hideModal('item-details-modal');
-            soundManager.play('success');
             showModal(`已卸下【${itemToUnequip.name}】。`, null, true);
             updateAllUI();
             savePlayerData();
@@ -3762,7 +3757,7 @@ function createCharacter() {
                  showModal(`確定要回收【${item.name}】嗎？此操作無法復原。`, () => {
                     player.inventory = player.inventory.filter(i => i.uniqueId !== item.uniqueId);
                     player.lootWarehouse = player.lootWarehouse.filter(i => i.uniqueId !== item.uniqueId);
-                    soundManager.play('back');
+                    soundManager.play('break');
                     showModal(`已回收【${item.name}】。`, null, true);
                     renderInventory();
                     savePlayerData();
@@ -3817,18 +3812,52 @@ function createCharacter() {
         function handleAvatarUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
+
             const reader = new FileReader();
-            reader.onload = e => {
-                player.avatar = e.target.result;
-                player.isCustomAvatar = true;
-                savePlayerData();
-                updateAllUI();
-                // [BUG修正] 新增成功提示，提供更好的使用者體驗
-                soundManager.play('success');
-                showModal("頭像更換成功！", null, true);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 創建一個虛擬的 canvas 來縮放圖片
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // 設定我們想要的最終尺寸
+                    const MAX_WIDTH = 200;
+                    const MAX_HEIGHT = 200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    // 等比例縮放
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // 將圖片繪製到 canvas 上
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // 從 canvas 取得壓縮後的 base64 資料
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // 0.9 代表壓縮品質
+
+                    player.avatar = dataUrl;
+                    player.isCustomAvatar = true;
+                    savePlayerData();
+                    updateAllUI();
+                    showModal('頭像更換成功！');
+                };
+                img.src = e.target.result;
             };
-            reader.readAsDataURL(file);
-        }
+    reader.readAsDataURL(file);
+}
 
         function deleteAvatar() {
             if (!player.isCustomAvatar) {
@@ -4198,8 +4227,7 @@ function createCharacter() {
                     
                     savePlayerData();
                     renderInventory();
-                    soundManager.play('');
-                    soundManager.play('success');
+                    soundManager.play('break');
                     showModal(`成功回收了 ${salvagedCount} 個道具！`, null, true);
                 });
             }, 100);
@@ -4678,7 +4706,6 @@ function createCharacter() {
                 soundManager.play('shine');
                 savePlayerData();
                 updateAllUI();
-                soundManager.play('success');
                 showModal(`已將【${item.name}】成功放置到展示櫃！`, null, true);
             }
         }
@@ -4701,7 +4728,6 @@ function createCharacter() {
                 soundManager.play('down');
                 savePlayerData();
                 updateAllUI();
-                soundManager.play('success');
                 showModal(`已取下【${itemToReturn.name}】，並將其放回道具倉庫。`, null, true);
             });
         }
@@ -4821,7 +4847,7 @@ function createCharacter() {
 
         } catch (error) {
             console.error("呼叫後端伺服器時出錯:", error);
-            return "糟糕，我跟我的秘密基地好像失聯了... 你可以檢查一下後端伺服器是否正常運作嗎？";
+            return "開發者很窮...  只能蹭免費版Gemini 1.5 flash ,所以我沒壞掉只是流量塞車爆炸了😩不是我笨不會回🥹       （他就算恢復了也一樣笨....by.開發者";
         }
     }
 
@@ -5288,6 +5314,12 @@ function createCharacter() {
             if (document.getElementById('museum-screen').classList.contains('active')) {
                 renderTitleSystemUI();
             }
+            const taskButton = document.querySelector(`button.task-claim-btn[data-task-id="${taskId}"]`);
+                if (taskButton) {
+                    taskButton.disabled = true;
+                    taskButton.textContent = '已領取';
+                    taskButton.classList.add('claimed');
+                }
         }
 
         
@@ -5499,8 +5531,10 @@ function createCharacter() {
                     const clickedTitleId = e.target.dataset.titleId;
                     if (player.equippedTitle === clickedTitleId) {
                         player.equippedTitle = null; 
+                        soundManager.play('down');
                     } else {
                         player.equippedTitle = clickedTitleId;
+                        soundManager.play('equipment');
                     }
                     savePlayerData();
                     updateAllUI(); 
